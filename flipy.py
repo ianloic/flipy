@@ -49,9 +49,9 @@ class Wrapper(object):
     # look for immediate children named @key
     elems = self.__node.findall('./%s' % key)
     if len(elems) == 1:
-      return Wrapper.get(elems[0])
-    else:
-      return [Wrapper.get(e) for e in elems]
+      return Wrapper.get(self.flickr, elems[0])
+    elif len(elems) > 1:
+      return [Wrapper.get(self.flickr, e) for e in elems]
 
   def __str__(self):
     return ET.tostring(self.__node)

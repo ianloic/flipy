@@ -1,1 +1,6 @@
-*Flipy = a simple Flickr API wrapper for Python*
+*Flipy - a simple Flickr API wrapper for Python*
+
+Flipy is a new, simple Python library for accessing the Flickr API. 
+The goal is to expose Flickr's API methods as-is, but for the responses
+to be as pythonic as possible.
+

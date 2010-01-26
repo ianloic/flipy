@@ -3,23 +3,6 @@
 from urllib import urlencode, quote, urlopen
 import lxml.etree as ET
 
-'''
-How Flickr responses map to Python objects in Flipy
-
-<rsp>
-  A successful response will be either the single wrapped child or a list of
-  the wrapped children if there are multiple children. An unsuccessful response
-  will map to an exception.
-
-Attributes on nodes will map to attributes on objects.
-Single child nodes will map to attributes on objects.
-Multiple child nodes with the same tagName will mape to list attributes on 
-objects.
-Nodes without attributes or (node) children will map to strings.
-For a node <foos> it will be a list-like object containing direct children 
-<foo>
-'''
-
 class Wrapper(object):
   CUSTOM={}
   @classmethod

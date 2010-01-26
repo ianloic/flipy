@@ -24,4 +24,5 @@ Some response objects have special methods. For example photo objects have a @in
 * Errors aren't exposed in a useful fashion yet
 * Authentication isn't supported yet
 * Uploading isn't supported yet
+
 These limitations will be addressed soon.

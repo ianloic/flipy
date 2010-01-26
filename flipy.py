@@ -149,3 +149,7 @@ class Flipy(object):
 if __name__ == '__main__':
   flickr = Flipy('7e472304ad52ebcc5a266463cd247ad3')
   me = flickr.people.findByUsername(username='ianloic')
+  me_info = flickr.people.getInfo(user_id=me.nsid)
+  print 'My name is %s. I have %s photos at %s.' % (
+    me_info.realname, me_info.photos.count, me_info.photosurl
+  )

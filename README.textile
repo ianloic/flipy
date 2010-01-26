@@ -4,13 +4,13 @@ Flipy is a new, simple Python library for accessing the Flickr API. The goal is 
 
 A basic use of the library is something like this:
 
+<pre>
 from flipy import Flipy
 flickr = Flipy(MY_API_KEY)
 me = flickr.people.findByUsername(username='ianloic')
 me_info = flickr.people.getInfo(user_id=me.nsid)
-print 'My name is %s. I have %s photos at %s.' % (
-  me_info.realname, me_info.photos.count, me_info.photosurl
-)
+print 'My name is %s. I have %s photos at %s.' % (me_info.realname, me_info.photos.count, me_info.photosurl)
+</pre>
 
 As you can see the method calls you make from Python exactly match Flickr's API documentation, but the objects returned obey Python conventions.
 

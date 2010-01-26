@@ -1,6 +1,27 @@
 *Flipy - a simple Flickr API wrapper for Python*
 
-Flipy is a new, simple Python library for accessing the Flickr API. 
-The goal is to expose Flickr's API methods as-is, but for the responses
-to be as pythonic as possible.
+Flipy is a new, simple Python library for accessing the Flickr API. The goal is to expose Flickr's API methods as-is, but for the responses to be as pythonic as possible.
 
+A basic use of the library is something like this:
+
+from flipy import Flipy
+flickr = Flipy(MY_API_KEY)
+me = flickr.people.findByUsername(username='ianloic')
+me_info = flickr.people.getInfo(user_id=me.nsid)
+print 'My name is %s. I have %s photos at %s.' % (
+  me_info.realname, me_info.photos.count, me_info.photosurl
+)
+
+As you can see the method calls you make from Python exactly match Flickr's API documentation, but the objects returned obey Python conventions.
+
+Response objects are mapped in a fairly simple, predictable manner. The outer &lt;rsp&gt; isn't present in Flipy's result objects. If there's an error you'll get an exception, currently not a very useful one, but that'll get better in the future. If there's no error you'll get either the root of the result (for most methods) or a list of the roots (if there more than one, such as for @flickr.reflection.getMethodInfo@).
+
+For each XML node in the result there's a Python object. If the node has no attributes or child nodes then it will just be a string of its text value. All node attributes are represented as properties. If a node name is a plural (eg: &lt;photos&gt;) and similar but non-plural children (eg: &lt;photo&gt;) will be represented as items - ie: you can iterate over the node. Other child nodes are represented as properties or a list of properties if there are multiple children with the same name.
+
+Some response objects have special methods. For example photo objects have a @info()@ method that calls @flickr.photo.getInfo@.
+
+*Limitations*
+* Errors aren't exposed in a useful fashion yet
+* Authentication isn't supported yet
+* Uploading isn't supported yet
+These limitations will be addressed soon.

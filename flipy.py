@@ -6,7 +6,14 @@ import lxml.etree as ET
 class Wrapper(object):
   CUSTOM={}
   @classmethod
+  def custom(klass, tag):
+    '''a decorator for defining custom wrappers'''
+    def call(f): klass.CUSTOM[tag] = f
+    return call
+
+  @classmethod
   def get(klass, flickr, node):
+    '''get a wrapper for the supplied node'''
     # nodes without attributes or node children map to their text value
     if len(node.attrib) == 0 and len(node) == 0:
       return node.text
@@ -18,6 +25,7 @@ class Wrapper(object):
       return klass(flickr, node)
 
   def __init__(self, flickr, node):
+    '''create a wrapper'''
     self.__node = node
     self.flickr = flickr
     self.__children = []
@@ -26,6 +34,7 @@ class Wrapper(object):
           for c in node.findall('./%s' % node.tag[:-1])]
 
   def __getattr__(self, key):
+    '''get a wrapper attribute'''
     # if we have an attribute named @key, return its value
     if self.__node.attrib.has_key(key):
       return self.__node.get(key)
@@ -40,21 +49,17 @@ class Wrapper(object):
     return ET.tostring(self.__node)
 
   def __getitem__(self, key):
+    '''get a wrapper item'''
     return self.__children[key]
 
   def __len__(self):
+    '''how many items does this wrapper have'''
     return len(self.__children)
 
 
-class wrapper_for(object):
-  def __init__(self, tag):
-    self.__tag = tag
-  def __call__(self, f):
-    Wrapper.CUSTOM[self.__tag] = f
-    return f
 
 
-@wrapper_for('rsp')
+@Wrapper.custom('rsp')
 def rsp_wrapper(flickr, node):
   '''This wrapper just returns the (expected) single body or throws an 
   exception in the case of an error'''
@@ -66,20 +71,23 @@ def rsp_wrapper(flickr, node):
     return [Wrapper.get(flickr, c) for c in children]
 
 
-@wrapper_for('user')
+@Wrapper.custom('user')
 class User(Wrapper):
+  '''wrap the <user> response with useful methods'''
   def photos(self, **args):
     args['user_id'] = self.nsid
     return self.flickr.page(self.flickr.photos.search, **args)
 
 
-@wrapper_for('photo')
+@Wrapper.custom('photo')
 class Photo(Wrapper):
+  '''wrap the <photo> response with useful methods'''
   def info(self):
     return flickr.photos.getInfo(photo_id = self.id, secret = self.secret)
 
 
 class Method(object):
+  '''method wrapper'''
   def __init__(self, flickr, methodName):
     self.flickr = flickr
     self.methodName = methodName

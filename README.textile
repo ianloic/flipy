@@ -20,9 +20,28 @@ For each XML node in the result there's a Python object. If the node has no attr
 
 Some response objects have special methods. For example photo objects have a @info()@ method that calls @flickr.photo.getInfo@.
 
+Requests will be signed if you supply an API secret, either as the second argument to the @Flipy()@ constructor or by setting the @secret@ field on your Flipy object. For example:
+<pre>
+# this works
+flickr = Flipy(MY_API_KEY)
+flickr.secret = MY_API_SECRET
+# so does this
+flickr = Flipy(MY_API_KEY, MY_API_SECRET)
+</pre>
+
+To authenticate, just use the normal Flickr API authentication calls. Flipy supports web, desktop and mobile because it simply wraps the existing API. If a Flipy object knows about the an auth token then it will be passed with all requests. The token can be assigned to the @token@ field on the Flipy object or passed into the constructor. There's also a helper method on the Flipy object, @authurl@ to return a signed authentication url. A desktop auth flow might look like:
+<pre>
+flickr = Flipy(MY_API_KEY, MY_API_SECRET)
+frob = flickr.auth.getFrob()
+print 'Go to: %s' % flickr.authurl(perms='read', frob=frob)
+raw_input('Press enter when you've completed your Flickr auth flow...')
+token_response = flickr.auth.getToken(frob=frob)
+flickr.token = token_response.token
+# now you can make authenticated requests
+</pre>
+
 *Limitations*
 * Errors aren't exposed in a useful fashion yet
-* Authentication isn't supported yet
 * Uploading isn't supported yet
 
 *Other Plans*

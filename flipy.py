@@ -100,7 +100,9 @@ class Method(object):
     return Method(self.flickr, self.methodName+'.'+key)
 
   def __call__(self, **args):
-    return self.flickr(self.methodName, **args)
+    return self.flickr.parse_response(
+        self.flickr.get(
+          self.flickr.url(method=self.methodName, **args)))
 
 
 class Flipy(object):
@@ -112,10 +114,12 @@ class Flipy(object):
   def __getattr__(self, key):
     return Method(self, 'flickr.'+key)
 
-  def url(self, method, **args):
+  def __url(self, base, **args):
     # collect and flatten arguments
     a = self.default_args.copy()
-    a['method'] = method
+    # add an auth token if available
+    if self.token:
+      a['auth_token'] = self.token
     for k,v in args.items():
       if isinstance(v, list):
         a[k] = ','.join(v)
@@ -133,10 +137,12 @@ class Flipy(object):
         hash.update(k + v)
       # add the has as an api_sig argument
       a['api_sig'] = hash.hexdigest()
-    return 'http://flickr.com/services/rest?' + urlencode(a)
+    return base + '?' + urlencode(a)
 
-  def __call__(self, method, **args):
-    return self.parse_response(self.get(self.url(method, **args)))
+  def url(self, **args):
+    return self.__url('http://flickr.com/services/rest', **args)
+  def authurl(self, **args):
+    return self.__url('http://flickr.com/services/auth', **args)
 
   def page(self, function, **args):
     args['page'] = 1

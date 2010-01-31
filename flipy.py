@@ -1,4 +1,7 @@
-'''Flipy - simple Flickr API wrapper'''
+'''Flipy - simple Flickr API wrapper
+Copyright 2010 Ian McKellar <http://ian.mckellar.org/>
+Flipy is Free Software under the terms of the GNU LGPL. See lgpl.txt.
+'''
 
 from urllib import urlencode, quote, urlopen
 import lxml.etree as ET

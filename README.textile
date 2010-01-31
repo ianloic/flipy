@@ -29,5 +29,9 @@ Some response objects have special methods. For example photo objects have a @in
 * Asynchronous mode (supporting twisted, gtk+, threading, etc)
 * Pluggable HTTP support (supporting twisted, GAE, etc)
 * Comprehensive unit tests
+* Unicode support is unverified
 
 These limitations and plans will be addressed soon.
+
+*License*
+Flipy is distributed under the GNU LGPL (see lgpl.txt). That means you can use it in your project without paying me or telling me, but if you make changes to it you need to share them with your users. Let me know if that's going to be a problem for you for some reason. I'm sure we can work something out.

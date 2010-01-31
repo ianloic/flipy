@@ -7,12 +7,36 @@ from urllib import urlencode, quote, urlopen
 import lxml.etree as ET
 import hashlib
 
+class FlipyError(StandardError):
+  pass
+
+class FlipyAttributeConflictError(FlipyError):
+  pass
+
 class Wrapper(object):
   CUSTOM={}
+  # what elements can contain multiple non-obvious children
+  MULTIPLES={
+      'activity': ('event',), # flickr.activity.*
+      'iconsphoto': ('photo',), # flickr.collections.getInfo
+      'collection': ('set', 'collection'), # flickr.collections.getTree
+      'category': ('subcat', 'group'), # flickr.groups.browse
+      'photo': (
+        'exif', # flickr.photos.getExif
+        'person', # flickr.photos.getFavorites
+      ),
+      'uploader': ('ticket',), # flickr.photos.upload.checkTickets
+      'photoset': ('photo',), # flickr.photosets.getPhotos
+      'cluster': ('tag',), # flickr.tags.getClusters
+      'hottags': ('tag',), # flickr.tags.getHotList
+      'tag': ('raw',), # flickr.tags.getListUserRaw
+      'people': ('person',), # flickr.photos.people.getList
+  }
   @classmethod
-  def custom(klass, tag):
+  def custom(klass, *tags):
     '''a decorator for defining custom wrappers'''
-    def call(f): klass.CUSTOM[tag] = f
+    def call(f): 
+      for tag in tags: klass.CUSTOM[tag] = f
     return call
 
   @classmethod
@@ -33,21 +57,38 @@ class Wrapper(object):
     self.__node = node
     self.flickr = flickr
     self.__children = []
-    if node.tag.endswith('s'):
-      self.__children = [Wrapper.get(flickr, c) 
-          for c in node.findall('./%s' % node.tag[:-1])]
+
+    # if this tag is plural work out what the singular is
+    singular = None
+    if node.tag.endswith('s'): singular = node.tag[:-1]
+
+    # find attributes
+    # start with the XML attributes
+    self.__attrs = dict(node.attrib)
+    # look through the direct children
+    for child in node.getchildren():
+      if child.tag == singular:
+        # handle singularized children
+        self.__children.append(Wrapper.get(flickr, child))
+      elif (Wrapper.MULTIPLES.has_key(node.tag) and 
+          child.tag in Wrapper.MULTIPLES[node.tag]):
+        # handle multiple child attributes
+        if self.__attrs.has_key(child.tag):
+          if isinstance(self.__attrs[child.tag], list):
+            self.__attrs[child.tag].append(Wrapper.get(flickr, child))
+          else:
+            # if a non-list attr exists already that's a problem
+            raise FlipyAttributeConflictError()
+        self.__attrs[child.tag] = [Wrapper.get(flickr, child)]
+      else:
+        # handle single child attributes
+        if self.__attrs.has_key(child.tag):
+          raise FlipyAttributeConflictError()
+        self.__attrs[child.tag] = Wrapper.get(flickr, child)
 
   def __getattr__(self, key):
     '''get a wrapper attribute'''
-    # if we have an attribute named @key, return its value
-    if self.__node.attrib.has_key(key):
-      return self.__node.get(key)
-    # look for immediate children named @key
-    elems = self.__node.findall('./%s' % key)
-    if len(elems) == 1:
-      return Wrapper.get(self.flickr, elems[0])
-    elif len(elems) > 1:
-      return [Wrapper.get(self.flickr, e) for e in elems]
+    return self.__attrs[key]
 
   def __str__(self):
     return ET.tostring(self.__node)
@@ -83,7 +124,7 @@ class User(Wrapper):
     return self.flickr.page(self.flickr.photos.search, **args)
 
 
-@Wrapper.custom('photo')
+@Wrapper.custom('photo', 'prevphoto', 'nextphoto')
 class Photo(Wrapper):
   '''wrap the <photo> response with useful methods'''
   def info(self):

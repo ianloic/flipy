@@ -90,8 +90,16 @@ class Wrapper(object):
     '''get a wrapper attribute'''
     return self.__attrs[key]
 
-  def __str__(self):
-    return ET.tostring(self.__node)
+  def __repr__(self):
+    '''human readable representation'''
+    return '<%s>%s%s' % (self.__node.tag, repr(self.__attrs), repr(self.__children))
+
+  def pprint(self, indent=0):
+    '''basic pretty printing'''
+    print '%s<%s>%s' % (' '*indent, self.__node.tag, repr(self.__attrs))
+    for child in self.__children:
+      if isinstance(child, Wrapper): child.pprint(indent+2)
+      else: print '%s%s' % (' '*indent, repr(child))
 
   def __getitem__(self, key):
     '''get a wrapper item'''

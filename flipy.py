@@ -5,6 +5,7 @@ Flipy is Free Software under the terms of the GNU LGPL. See lgpl.txt.
 
 from urllib import urlencode, quote, urlopen
 import lxml.etree as ET
+import hashlib
 
 class Wrapper(object):
   CUSTOM={}
@@ -103,13 +104,15 @@ class Method(object):
 
 
 class Flipy(object):
-  def __init__(self, api_key):
+  def __init__(self, api_key, secret=None, token=None):
     self.default_args = {'api_key': api_key}
+    self.secret = secret
+    self.token = token
 
   def __getattr__(self, key):
     return Method(self, 'flickr.'+key)
 
-  def __call__(self, method, **args):
+  def url(self, method, **args):
     # collect and flatten arguments
     a = self.default_args.copy()
     a['method'] = method
@@ -118,8 +121,22 @@ class Flipy(object):
         a[k] = ','.join(v)
       else:
         a[k] = v
-    url = 'http://flickr.com/services/rest?' + urlencode(a)
-    return self.parse_response(self.get(url))
+    # calculate a signature if we have an API secret
+    if self.secret:
+      # get args sorted by name
+      items = a.items()
+      items.sort(lambda x,y:cmp(x[0], y[0]))
+      # hash the secret then the arguments
+      hash = hashlib.md5()
+      hash.update(self.secret)
+      for k, v in items:
+        hash.update(k + v)
+      # add the has as an api_sig argument
+      a['api_sig'] = hash.hexdigest()
+    return 'http://flickr.com/services/rest?' + urlencode(a)
+
+  def __call__(self, method, **args):
+    return self.parse_response(self.get(self.url(method, **args)))
 
   def page(self, function, **args):
     args['page'] = 1

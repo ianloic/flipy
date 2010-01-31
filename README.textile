@@ -25,4 +25,9 @@ Some response objects have special methods. For example photo objects have a @in
 * Authentication isn't supported yet
 * Uploading isn't supported yet
 
-These limitations will be addressed soon.
+*Other Plans*
+* Asynchronous mode (supporting twisted, gtk+, threading, etc)
+* Pluggable HTTP support (supporting twisted, GAE, etc)
+* Comprehensive unit tests
+
+These limitations and plans will be addressed soon.

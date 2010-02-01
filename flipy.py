@@ -13,7 +13,7 @@ class FlipyError(StandardError):
 class FlipyAttributeConflictError(FlipyError):
   pass
 
-class Wrapper(object):
+class Response(object):
   CUSTOM={}
   # what elements can contain multiple non-obvious children
   MULTIPLES={
@@ -34,18 +34,18 @@ class Wrapper(object):
   }
   @classmethod
   def custom(klass, *tags):
-    '''a decorator for defining custom wrappers'''
+    '''a decorator for defining custom responses'''
     def call(f): 
       for tag in tags: klass.CUSTOM[tag] = f
     return call
 
   @classmethod
   def get(klass, flickr, node):
-    '''get a wrapper for the supplied node'''
+    '''get a response wrapper for the supplied node'''
     # nodes without attributes or node children map to their text value
     if len(node.attrib) == 0 and len(node) == 0:
       return node.text
-    # look for a custom wrapper constructor
+    # look for a custom response wrapper constructor
     if klass.CUSTOM.has_key(node.tag):
       constructor = klass.CUSTOM[node.tag]
       return constructor(flickr, node)
@@ -53,7 +53,7 @@ class Wrapper(object):
       return klass(flickr, node)
 
   def __init__(self, flickr, node):
-    '''create a wrapper'''
+    '''create a response wrapper'''
     self.__node = node
     self.flickr = flickr
     self.__children = []
@@ -69,25 +69,25 @@ class Wrapper(object):
     for child in node.getchildren():
       if child.tag == singular:
         # handle singularized children
-        self.__children.append(Wrapper.get(flickr, child))
-      elif (Wrapper.MULTIPLES.has_key(node.tag) and 
-          child.tag in Wrapper.MULTIPLES[node.tag]):
+        self.__children.append(Response.get(flickr, child))
+      elif (Response.MULTIPLES.has_key(node.tag) and 
+          child.tag in Response.MULTIPLES[node.tag]):
         # handle multiple child attributes
         if self.__attrs.has_key(child.tag):
           if isinstance(self.__attrs[child.tag], list):
-            self.__attrs[child.tag].append(Wrapper.get(flickr, child))
+            self.__attrs[child.tag].append(Response.get(flickr, child))
           else:
             # if a non-list attr exists already that's a problem
             raise FlipyAttributeConflictError()
-        self.__attrs[child.tag] = [Wrapper.get(flickr, child)]
+        self.__attrs[child.tag] = [Response.get(flickr, child)]
       else:
         # handle single child attributes
         if self.__attrs.has_key(child.tag):
           raise FlipyAttributeConflictError()
-        self.__attrs[child.tag] = Wrapper.get(flickr, child)
+        self.__attrs[child.tag] = Response.get(flickr, child)
 
   def __getattr__(self, key):
-    '''get a wrapper attribute'''
+    '''get a response attribute'''
     return self.__attrs[key]
 
   def __repr__(self):
@@ -98,42 +98,40 @@ class Wrapper(object):
     '''basic pretty printing'''
     print '%s<%s>%s' % (' '*indent, self.__node.tag, repr(self.__attrs))
     for child in self.__children:
-      if isinstance(child, Wrapper): child.pprint(indent+2)
+      if isinstance(child, Response): child.pprint(indent+2)
       else: print '%s%s' % (' '*indent, repr(child))
 
   def __getitem__(self, key):
-    '''get a wrapper item'''
+    '''get a response item'''
     return self.__children[key]
 
   def __len__(self):
-    '''how many items does this wrapper have'''
+    '''how many items does this response have'''
     return len(self.__children)
 
 
-
-
-@Wrapper.custom('rsp')
-def rsp_wrapper(flickr, node):
-  '''This wrapper just returns the (expected) single body or throws an 
+@Response.custom('rsp')
+def rsp_helper(flickr, node):
+  '''This helper just returns the (expected) single body or throws an 
   exception in the case of an error'''
   assert node.get('stat') == 'ok'
   children = node.getchildren()
   if len(children) == 1:
-    return Wrapper.get(flickr, children[0])
+    return Response.get(flickr, children[0])
   else:
-    return [Wrapper.get(flickr, c) for c in children]
+    return [Response.get(flickr, c) for c in children]
 
 
-@Wrapper.custom('user')
-class User(Wrapper):
+@Response.custom('user')
+class User(Response):
   '''wrap the <user> response with useful methods'''
   def photos(self, **args):
     args['user_id'] = self.nsid
     return self.flickr.page(self.flickr.photos.search, **args)
 
 
-@Wrapper.custom('photo', 'prevphoto', 'nextphoto')
-class Photo(Wrapper):
+@Response.custom('photo', 'prevphoto', 'nextphoto')
+class Photo(Response):
   '''wrap the <photo> response with useful methods'''
   def info(self):
     return flickr.photos.getInfo(photo_id = self.id, secret = self.secret)
@@ -141,17 +139,34 @@ class Photo(Wrapper):
 
 class Method(object):
   '''method wrapper'''
+  CUSTOM={}
+  @classmethod
+  def custom(klass, *methodNames):
+    '''a decorator for defining custom methods'''
+    def call(f): 
+      for methodName in methodNames: klass.CUSTOM[methodName] = f
+    return call
+
+  @classmethod
+  def get(klass, flickr, methodName):
+    '''get a method wrapper for the supplied name'''
+    # look for a custom method wrapper constructor
+    if klass.CUSTOM.has_key(methodName):
+      return klass.CUSTOM[methodName](flickr, methodName)
+    else:
+      return klass(flickr, methodName)
+
   def __init__(self, flickr, methodName):
     self.flickr = flickr
     self.methodName = methodName
 
   def __getattr__(self, key):
-    return Method(self.flickr, self.methodName+'.'+key)
+    return Method.get(self.flickr, self.methodName+'.'+key)
 
   def __call__(self, **args):
     return self.flickr.parse_response(
         self.flickr.get(
-          self.flickr.url(method=self.methodName, **args)))
+          self.flickr.resturl(method=self.methodName, **args)))
 
 
 class Flipy(object):
@@ -188,7 +203,7 @@ class Flipy(object):
       a['api_sig'] = hash.hexdigest()
     return base + '?' + urlencode(a)
 
-  def url(self, **args):
+  def resturl(self, **args):
     return self.__url('http://flickr.com/services/rest', **args)
   def authurl(self, **args):
     return self.__url('http://flickr.com/services/auth', **args)
@@ -209,7 +224,7 @@ class Flipy(object):
 
   def parse_response(self, string):
     '''Parse a response string into objects'''
-    return Wrapper.get(self, ET.fromstring(string))
+    return Response.get(self, ET.fromstring(string))
 
 
 if __name__ == '__main__':

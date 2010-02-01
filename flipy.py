@@ -79,7 +79,8 @@ class Response(object):
           else:
             # if a non-list attr exists already that's a problem
             raise FlipyAttributeConflictError()
-        self.__attrs[child.tag] = [Response.get(flickr, child)]
+        else:
+          self.__attrs[child.tag] = [Response.get(flickr, child)]
       else:
         # handle single child attributes
         if self.__attrs.has_key(child.tag):

@@ -10,8 +10,22 @@ import hashlib
 class FlipyError(StandardError):
   pass
 
+
+class FlipyFlickrError(FlipyError):
+  '''Flickr returned an error'''
+  def __init__(self, rsp):
+    # create an exception based on a failure response
+    assert rsp.get('stat') == 'fail'
+    err = rsp.find('err')
+    FlipyError.__init__(self, 'Error %s: %s' % 
+        (err.get('code'), err.get('msg')))
+
+
 class FlipyAttributeConflictError(FlipyError):
+  '''There was an attribute conflict, please file a bug and tell us what 
+  API call you were making'''
   pass
+
 
 class Response(object):
   CUSTOM={}
@@ -115,6 +129,8 @@ class Response(object):
 def rsp_helper(flickr, node):
   '''This helper just returns the (expected) single body or throws an 
   exception in the case of an error'''
+  if node.get('stat') != 'ok':
+    raise FlipyFlickrError(node)
   assert node.get('stat') == 'ok'
   children = node.getchildren()
   if len(children) == 1:

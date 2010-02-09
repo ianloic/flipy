@@ -102,7 +102,12 @@ flickr.authurl(frob='frob')
 
     <h3>Method objects</h3>
 
-    <p>Method objects have no extra methods right now.</p>
+    <p>Some Flickr API methods (such as <code class="prettyprint">flickr.photos.search</code>) paginate their results. You need to make multiple calls to the server to get all of the results. For methods such as this you can call <code class="prettyprint">paginate()</code> on the method to get a generator that will return all of the results. For example:
+<pre class="prettyprint">
+for photo in flickr.photos.search.paginate(user_id='76722295@N00'):
+  print photo.id
+</pre>
+</p>
 
     <h3>Response objects</h3>
 
@@ -112,7 +117,8 @@ flickr.authurl(frob='frob')
     <p>These objects have an <code class="prettyprint">photo.info()</code> method which calls <code class="prettyprint">flickr.photo.getInfo</code> to get the full details of the photo.</p>
 
     <h4>&lt;user&gt;</h4>
-    <p>This object has a <code class="prettyprint">user.photos()</code> method which returns an iterator returning all of the user's photos. It calls <code class="prettyprint">flickr.photo.search</code> internally, so you can pass additional parameters to filter the search. It handles paging automatically.
+    <p><code class="prettyprint">user.photos()</code> return all photos uploaded by the user. It calls <code class="prettyprint">flickr.photo.search</code> internally so you can pass any appropriate additional parameters</p>
+    <p><code class="prettyprint">user.photosOf()</code> return all photos of the user. It calls <code class="prettyprint">flickr.people.getPhotosOf</code> internally so you can pass any appropriate additional parameters</p>
 
     <h2>Extending</h2>
 

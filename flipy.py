@@ -164,11 +164,11 @@ class Photo(Response):
     '''get full information about this photo'''
     args = {'photo_id': self.id}
     if self.secret: args['secret'] = self.secret
-    return flickr.photos.getInfo(**args)
+    return self.flickr.photos.getInfo(**args)
 
   def people(self):
     '''return all of the people in this photo'''
-    return flickr.photos.people.getList(photo_id = self.id)
+    return self.flickr.photos.people.getList(photo_id = self.id)
 
 
 class Method(object):

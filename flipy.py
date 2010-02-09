@@ -103,7 +103,10 @@ class Response(object):
 
   def __getattr__(self, key):
     '''get a response attribute'''
-    return self.__attrs[key]
+    if self.__attrs.has_key(key):
+      return self.__attrs[key]
+    else:
+      return None
 
   def __repr__(self):
     '''human readable representation'''

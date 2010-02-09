@@ -74,6 +74,10 @@ flickr.token = token_response.token
 
     <p>For each XML node in the result there's a Python object. If the node has no attributes or child nodes then it will just be a string of its text value. All node attributes are represented as properties. If a node name is a plural (eg: &lt;photos&gt;) and similar but non-plural children (eg: &lt;photo&gt;) will be represented as items - ie: you can iterate over the node. Other child nodes are represented as properties. Some responses contain multiple children with the same name, but don't match the simple plural/singular naming, in that case the property will be an array of all of the values. If there are unexpected name conflicts an exception will be thrown, if you see that please report it and I'll update the code to handle the case.</p>
 
+    <h2>Errors</h2>
+    
+    <p>If Flickr returns an error then a FlipyFlickrError will be thrown whose value is the error string from Flickr.</p>
+
     <h2>API</h2>
 
     <p>Apart from the request and reponse conventions described above, Flipy provides a small API of its own for your convenience.</p>
@@ -97,6 +101,8 @@ flickr.authurl(frob='frob')
 </p>
 
     <h3>Method objects</h3>
+
+    <p>Method objects have no extra methods right now.</p>
 
     <h3>Response objects</h3>
 
@@ -124,7 +130,6 @@ This is how custom response objects are implemented. There are a bunch of exampl
     <h2>Future Plans</h2>
 
     <ul>
-      <li>Improve error reporting</li>
       <li>Support uploading</li>
       <li>Unit tests</li>
       <li>Verify unicode support</li>

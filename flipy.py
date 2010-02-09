@@ -145,9 +145,16 @@ def rsp_helper(flickr, node):
 @Response.custom('user')
 class User(Response):
   '''wrap the <user> response with useful methods'''
+
   def photos(self, **args):
+    '''Photos uploaded by this user'''
     args['user_id'] = self.nsid
-    return self.flickr.page(self.flickr.photos.search, **args)
+    return self.flickr.photos.search.paginate(**args)
+
+  def photosOf(self, **args):
+    '''Photos of this user'''
+    args['user_id'] = self.nsid
+    return self.flickr.people.getPhotosOf.paginate(**args)
 
 
 @Response.custom('photo', 'prevphoto', 'nextphoto')
@@ -188,6 +195,28 @@ class Method(object):
         self.flickr.get(
           self.flickr.resturl(method=self.methodName, **args)))
 
+  def paginate(self, **args):
+    '''return all results for this method as a generator, 
+    even if there's multiple pages'''
+
+    args['page'] = 1
+    while True:
+      results = self(**args)
+      for result in results:
+        yield result
+      if results.pages != None:
+        # we have a "pages" attribute
+        if results.page == results.pages:
+          break
+      elif results.has_next_page != None:
+        # we have a "has_next_page" attribute
+        if results.has_next_page != '1':
+          break
+      else:
+        # we have no indication that there's paging in this response
+        break
+      args['page'] = args['page'] + 1
+
 
 class Flipy(object):
   def __init__(self, api_key, secret=None, token=None):
@@ -227,16 +256,6 @@ class Flipy(object):
     return self.__url('http://flickr.com/services/rest', **args)
   def authurl(self, **args):
     return self.__url('http://flickr.com/services/auth', **args)
-
-  def page(self, function, **args):
-    args['page'] = 1
-    while True:
-      results = function(**args)
-      for result in results:
-        yield result
-      if results.page == results.pages:
-        break
-      args['page'] = args['page'] + 1
 
   def get(self, url):
     '''Do an HTTP get for the supplied @url, return the response as a string'''

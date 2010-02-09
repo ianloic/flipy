@@ -113,11 +113,14 @@ for photo in flickr.photos.search.paginate(user_id='76722295@N00'):
 
     <p>All response objects have a <code class="prettyprint">response.pprint()</code> method that can be used to print a relatively human readable version of their structure. It's useful when trying to work out how to get the information you want out.</p>
 
+    <p>Some response objects have extra methods to make the API feel a little more object-oriented. I've only added a few but if you can think of more that make sense that you would like then please let me know.</p>
+
     <h4>&lt;photo&gt;, &lt;prevphoto&gt;, &lt;nextphoto&gt;</h4>
-    <p>These objects have an <code class="prettyprint">photo.info()</code> method which calls <code class="prettyprint">flickr.photo.getInfo</code> to get the full details of the photo.</p>
+    <p><code class="prettyprint">photo.info()</code> return the full information about the photo. It calls <code class="prettyprint">flickr.photos.getInfo</code>.</p>
+    <p><code class="prettyprint">photo.people()</code> return the people in the photo. It calls <code class="prettyprint">flickr.photos.people.getList</code>.</p>
 
     <h4>&lt;user&gt;</h4>
-    <p><code class="prettyprint">user.photos()</code> return all photos uploaded by the user. It calls <code class="prettyprint">flickr.photo.search</code> internally so you can pass any appropriate additional parameters</p>
+    <p><code class="prettyprint">user.photos()</code> return all photos uploaded by the user. It calls <code class="prettyprint">flickr.photos.search</code> internally so you can pass any appropriate additional parameters</p>
     <p><code class="prettyprint">user.photosOf()</code> return all photos of the user. It calls <code class="prettyprint">flickr.people.getPhotosOf</code> internally so you can pass any appropriate additional parameters</p>
 
     <h2>Extending</h2>

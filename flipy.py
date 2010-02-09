@@ -161,7 +161,14 @@ class User(Response):
 class Photo(Response):
   '''wrap the <photo> response with useful methods'''
   def info(self):
-    return flickr.photos.getInfo(photo_id = self.id, secret = self.secret)
+    '''get full information about this photo'''
+    args = {'photo_id': self.id}
+    if self.secret: args['secret'] = self.secret
+    return flickr.photos.getInfo(**args)
+
+  def people(self):
+    '''return all of the people in this photo'''
+    return flickr.photos.people.getList(photo_id = self.id)
 
 
 class Method(object):

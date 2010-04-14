@@ -254,10 +254,12 @@ class Flipy(object):
     if self.token:
       a['auth_token'] = self.token
     for k,v in args.items():
-      if isinstance(v, list):
+      if isinstance(v, (list, tuple)):
         a[k] = ','.join(v)
-      else:
+      elif isinstance(v, (str, unicode)):
         a[k] = v
+      else:
+        a[k] = str(v)
     # calculate a signature if we have an API secret
     if self.secret:
       # get args sorted by name

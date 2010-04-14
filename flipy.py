@@ -51,6 +51,7 @@ class Response(object):
     '''a decorator for defining custom responses'''
     def call(f): 
       for tag in tags: klass.CUSTOM[tag] = f
+      return f
     return call
 
   @classmethod
@@ -62,15 +63,10 @@ class Response(object):
     # look for a custom response wrapper constructor
     if klass.CUSTOM.has_key(node.tag):
       constructor = klass.CUSTOM[node.tag]
-      return constructor(flickr, node)
     else:
-      return klass(flickr, node)
+      constructor = klass
 
-  def __init__(self, flickr, node):
-    '''create a response wrapper'''
-    self.__node = node
-    self.flickr = flickr
-    self.__children = []
+    children = []
 
     # if this tag is plural work out what the singular is
     singular = None
@@ -78,28 +74,46 @@ class Response(object):
 
     # find attributes
     # start with the XML attributes
-    self.__attrs = dict(node.attrib)
+    attrs = dict(node.attrib)
     # look through the direct children
     for child in node.getchildren():
       if child.tag == singular:
         # handle singularized children
-        self.__children.append(Response.get(flickr, child))
+        children.append(Response.get(flickr, child))
       elif (Response.MULTIPLES.has_key(node.tag) and 
           child.tag in Response.MULTIPLES[node.tag]):
         # handle multiple child attributes
-        if self.__attrs.has_key(child.tag):
-          if isinstance(self.__attrs[child.tag], list):
-            self.__attrs[child.tag].append(Response.get(flickr, child))
+        if attrs.has_key(child.tag):
+          if isinstance(attrs[child.tag], list):
+            attrs[child.tag].append(Response.get(flickr, child))
           else:
             # if a non-list attr exists already that's a problem
             raise FlipyAttributeConflictError()
         else:
-          self.__attrs[child.tag] = [Response.get(flickr, child)]
+          attrs[child.tag] = [Response.get(flickr, child)]
       else:
         # handle single child attributes
-        if self.__attrs.has_key(child.tag):
+        if attrs.has_key(child.tag):
           raise FlipyAttributeConflictError()
-        self.__attrs[child.tag] = Response.get(flickr, child)
+        attrs[child.tag] = Response.get(flickr, child)
+
+    # create an object and return it
+    return constructor(flickr, node.tag, attrs, children)
+        
+
+  def __init__(self, flickr, tag, attrs, children):
+    '''create a response wrapper'''
+    self.flickr = flickr
+    self.__tag = tag
+    self.__attrs = attrs
+    self.__children = children
+
+  def __reduce__(self):
+    '''get state for pickling'''
+    return (
+        self.__class__,
+        (self.flickr, self.__tag, self.__attrs, self.__children),
+    )
 
   def __getattr__(self, key):
     '''get a response attribute'''
@@ -110,11 +124,11 @@ class Response(object):
 
   def __repr__(self):
     '''human readable representation'''
-    return '<%s>%s%s' % (self.__node.tag, repr(self.__attrs), repr(self.__children))
+    return '<%s>%s%s' % (self.__tag, repr(self.__attrs), repr(self.__children))
 
   def pprint(self, indent=0):
     '''basic pretty printing'''
-    print '%s<%s>%s' % (' '*indent, self.__node.tag, repr(self.__attrs))
+    print '%s<%s>%s' % (' '*indent, self.__tag, repr(self.__attrs))
     for child in self.__children:
       if isinstance(child, Response): child.pprint(indent+2)
       else: print '%s%s' % (' '*indent, repr(child))
@@ -126,20 +140,6 @@ class Response(object):
   def __len__(self):
     '''how many items does this response have'''
     return len(self.__children)
-
-
-@Response.custom('rsp')
-def rsp_helper(flickr, node):
-  '''This helper just returns the (expected) single body or throws an 
-  exception in the case of an error'''
-  if node.get('stat') != 'ok':
-    raise FlipyFlickrError(node)
-  assert node.get('stat') == 'ok'
-  children = node.getchildren()
-  if len(children) == 1:
-    return Response.get(flickr, children[0])
-  else:
-    return [Response.get(flickr, c) for c in children]
 
 
 @Response.custom('user')
@@ -231,6 +231,19 @@ class Flipy(object):
     self.secret = secret
     self.token = token
 
+  def __getstate__(self):
+    '''get state for pickling'''
+    return { 
+        'default_args': self.default_args,
+        'secret': self.secret,
+        'token': self.token,
+        }
+  def __setstate__(self, state):
+    '''set state from pickle'''
+    self.default_args = state['default_args']
+    self.secret = state['secret']
+    self.token = state['token']
+
   def __getattr__(self, key):
     return Method(self, 'flickr.'+key)
 
@@ -270,7 +283,14 @@ class Flipy(object):
 
   def parse_response(self, string):
     '''Parse a response string into objects'''
-    return Response.get(self, ET.fromstring(string))
+    node =  ET.fromstring(string)
+    if node.get('stat') != 'ok':
+      raise FlipyFlickrError(node)
+    children = node.getchildren()
+    if len(children) == 1:
+      return Response.get(flickr, children[0])
+    else:
+      return [Response.get(flickr, c) for c in children]
 
 
 if __name__ == '__main__':

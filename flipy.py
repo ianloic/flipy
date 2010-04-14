@@ -288,9 +288,9 @@ class Flipy(object):
       raise FlipyFlickrError(node)
     children = node.getchildren()
     if len(children) == 1:
-      return Response.get(flickr, children[0])
+      return Response.get(self, children[0])
     else:
-      return [Response.get(flickr, c) for c in children]
+      return [Response.get(self, c) for c in children]
 
 
 if __name__ == '__main__':

@@ -166,6 +166,22 @@ class Photo(Response):
     if self.secret: args['secret'] = self.secret
     return self.flickr.photos.getInfo(**args)
 
+  def size(self):
+    '''get sizes of this photo'''
+    return self.flickr.photos.getSizes(photo_id=self.id)
+
+  def originalSize(self):
+    '''get the original size of this photo'''
+    return self.flickr.photos.getSizes(photo_id=self.id)[-1]
+
+  def geoData(self):
+    ''' Returns the location info available for this photo.
+        If the photo has no info, returns a location object
+        with None values for each attribute '''
+    args = {'photo_id': self.id}
+    if self.secret: args['secret'] = self.secret
+    return self.flickr.photos.geo.getLocation(**args)
+
   def people(self):
     '''return all of the people in this photo'''
     return self.flickr.photos.people.getList(photo_id = self.id)
@@ -287,12 +303,24 @@ class Flipy(object):
     '''Parse a response string into objects'''
     node =  ET.fromstring(string)
     if node.get('stat') != 'ok':
-      raise FlipyFlickrError(node)
-    children = node.getchildren()
-    if len(children) == 1:
-      return Response.get(self, children[0])
-    else:
-      return [Response.get(self, c) for c in children]
+      ''' 
+        If the error is about no existence of geolocation data, create a new response
+          Else, raise FlipyFlickrError.
+      '''
+      if node.getchildren()[0].tag == 'err': # If error tag exists
+        resp = node.getchildren()[0] # Obtain the error
+
+        if resp.get('code') == "2" and resp.get('msg') == 'Photo has no location information.':
+          geoEmpty = ET.fromstring('<location latitude="None" longitude="None" accuracy="None" />') # Create response
+          return Response.get(self, geoEmpty)
+        else:
+          raise FlipyFlickrError(node)
+    else:      
+      children = node.getchildren()
+      if len(children) == 1:
+        return Response.get(self, children[0])
+      else:
+        return [Response.get(self, c) for c in children]
 
 
 if __name__ == '__main__':
